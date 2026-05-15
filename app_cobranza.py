@@ -83,10 +83,8 @@ if verificar_acceso():
             st.error(f"Error al conectar con Google Sheets: {e}")
 
 # --- MÓDULO 2: REGISTRO DE NUEVO CLIENTE ---
-    if menu == "Registrar Nuevo Cliente":
+    elif menu == "Registrar Nuevo Cliente":
         st.title("📝 Registro de Nuevo Crédito")
-        
-        # Obtenemos la fecha actual para el registro
         fecha_hoy = datetime.now().strftime("%Y-%m-%d")
         
         with st.form("registro_cliente"):
@@ -100,37 +98,16 @@ if verificar_acceso():
             
             st.markdown("### 🛡️ Información de Avales")
             col1, col2 = st.columns(2)
-            
             with col1:
                 aval1_nombre = st.text_input("Nombre Completo - Aval 1")
                 aval1_tel = st.text_input("Teléfono - Aval 1")
-                
             with col2:
                 aval2_nombre = st.text_input("Nombre Completo - Aval 2")
                 aval2_tel = st.text_input("Teléfono - Aval 2")
 
-            submit = st.form_submit_button("🚀 Guardar en la Nube")
-
-            if submit:
-                if nombre and monto > 0 and telefono:
-                    try:
-                        # 1. Leemos los datos actuales
-                        df_actual = conn.read(ttl=0)
-                        
-                        # 2. Creamos la nueva fila (Asegúrate de que el orden coincida con tus columnas en Excel)
-                        nueva_fila = pd.DataFrame([{
-                            "fecha": fecha_hoy,
-                            "nombre": nombre,
-                            "monto": monto,
-                            "teléfono": telefono,
-                            "aval 1": aval1_nombre,
-                            "tel aval 1": aval1_tel,
-                            "aval 2": aval2_nombre,
-                            "tel aval 2": aval2_tel,
-                            
-                       # ... (después de los campos de avales)
+            # ESTO VA AQUÍ, AFUERA DEL DICCIONARIO
             st.markdown("### 📊 Estatus del Crédito")
-            estado = st.selectbox("Estado Inicial", ["Activo", "Pendiente", "Revision"])
+            estado = st.selectbox("Estado Inicial", ["Activo", "Pendiente", "Revisión"])
 
             submit = st.form_submit_button("🚀 Guardar en la Nube")
 
@@ -138,7 +115,7 @@ if verificar_acceso():
                 if nombre and monto > 0 and telefono:
                     try:
                         df_actual = conn.read(ttl=0)
-                        
+                        # AQUÍ ES DONDE SE CREA LA FILA (SOLO DATOS)
                         nueva_fila = pd.DataFrame([{
                             "fecha": fecha_hoy,
                             "nombre": nombre,
@@ -150,21 +127,14 @@ if verificar_acceso():
                             "tel aval 2": aval2_tel,
                             "estado": estado
                         }])
-                        
                         df_final = pd.concat([df_actual, nueva_fila], ignore_index=True)
                         conn.update(data=df_final)
-                        
                         st.success(f"✅ ¡Registro de {nombre} guardado con éxito!")
                         st.balloons()
                     except Exception as e:
-                        st.error(f"Error al guardar: {e}")                        }])
-                        
-                        # 3. Concatenamos y subimos
-                        df_final = pd.concat([df_actual, nueva_fila], ignore_index=True)
-                        conn.update(data=df_final)
-                        
-                        st.success(f"✅ ¡Registro de {nombre} guardado con éxito!")
-                        st.balloons
+                        st.error(f"Error al guardar: {e}")
+                else:
+                    st.warning("⚠️ Por favor llena los campos obligatorios (Nombre, Monto y Teléfono)")
 
     # --- PIE DE PÁGINA ---
     st.sidebar.markdown("---")
