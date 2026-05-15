@@ -82,25 +82,59 @@ if verificar_acceso():
         except Exception as e:
             st.error(f"Error al conectar con Google Sheets: {e}")
 
-if menu == "Registrar Nuevo Cliente":
-    st.title("📝 Registro de Nuevo Crédito")
-    
-    with st.form("registro_cliente"):
-        # ... (tus campos actuales: nombre, monto, etc.)
+# --- MÓDULO 2: REGISTRO DE NUEVO CLIENTE ---
+    if menu == "Registrar Nuevo Cliente":
+        st.title("📝 Registro de Nuevo Crédito")
         
-        st.markdown("### 🛡️ Información de Avales")
-        col1, col2 = st.columns(2)
+        # Obtenemos la fecha actual para el registro
+        fecha_hoy = datetime.now().strftime("%Y-%m-%d")
         
-        with col1:
-            aval1_nombre = st.text_input("Nombre Completo - Aval 1")
-            aval1_tel = st.text_input("Teléfono - Aval 1")
+        with st.form("registro_cliente"):
+            st.markdown("### 👤 Datos del Titular")
+            nombre = st.text_input("Nombre Completo del Cliente")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                monto = st.number_input("Monto del Préstamo ($)", min_value=0)
+            with col_b:
+                telefono = st.text_input("Teléfono (10 dígitos)")
             
-        with col2:
-            aval2_nombre = st.text_input("Nombre Completo - Aval 2")
-            aval2_tel = st.text_input("Teléfono - Aval 2")
+            st.markdown("### 🛡️ Información de Avales")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                aval1_nombre = st.text_input("Nombre Completo - Aval 1")
+                aval1_tel = st.text_input("Teléfono - Aval 1")
+                
+            with col2:
+                aval2_nombre = st.text_input("Nombre Completo - Aval 2")
+                aval2_tel = st.text_input("Teléfono - Aval 2")
 
-        if st.form_submit_button("Guardar Registro"):
-            # AQUÍ AGREGAMOS LOS DATOS A LA LISTA QUE SE ENVÍA A GOOGLE
+            submit = st.form_submit_button("🚀 Guardar en la Nube")
+
+            if submit:
+                if nombre and monto > 0 and telefono:
+                    try:
+                        # 1. Leemos los datos actuales
+                        df_actual = conn.read(ttl=0)
+                        
+                        # 2. Creamos la nueva fila (Asegúrate de que el orden coincida con tus columnas en Excel)
+                        nueva_fila = pd.DataFrame([{
+                            "fecha": fecha_hoy,
+                            "nombre": nombre,
+                            "monto": monto,
+                            "teléfono": telefono,
+                            "aval 1": aval1_nombre,
+                            "tel aval 1": aval1_tel,
+                            "aval 2": aval2_nombre,
+                            "tel aval 2": aval2_tel
+                        }])
+                        
+                        # 3. Concatenamos y subimos
+                        df_final = pd.concat([df_actual, nueva_fila], ignore_index=True)
+                        conn.update(data=df_final)
+                        
+                        st.success(f"✅ ¡Registro de {nombre} guardado con éxito!")
+                        st.balloons         # AQUÍ AGREGAMOS LOS DATOS A LA LISTA QUE SE ENVÍA A GOOGLE
             nuevo_registro = [
                 fecha_hoy, nombre, monto, telefono, 
                 aval1_nombre, aval1_tel,  # <--- Nuevos campos
