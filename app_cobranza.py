@@ -126,7 +126,8 @@ if verificar_acceso():
                             "aval 1": aval1_nombre,
                             "tel aval 1": aval1_tel,
                             "aval 2": aval2_nombre,
-                            "tel aval 2": aval2_tel
+                            "tel aval 2": aval2_tel,
+                            
                        # ... (después de los campos de avales)
             st.markdown("### 📊 Estatus del Crédito")
             estado = st.selectbox("Estado Inicial", ["Activo", "Pendiente", "Revision"])
@@ -147,7 +148,7 @@ if verificar_acceso():
                             "tel aval 1": aval1_tel,
                             "aval 2": aval2_nombre,
                             "tel aval 2": aval2_tel,
-                            "estado": estado  # <--- Nueva columna
+                            "estado": estado
                         }])
                         
                         df_final = pd.concat([df_actual, nueva_fila], ignore_index=True)
