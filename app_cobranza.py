@@ -134,7 +134,8 @@ if verificar_acceso():
                         conn.update(data=df_final)
                         
                         st.success(f"✅ ¡Registro de {nombre} guardado con éxito!")
-                        st.balloons    
-# --- PIE DE PÁGINA ---
+                        st.balloons
+
+    # --- PIE DE PÁGINA ---
     st.sidebar.markdown("---")
     st.sidebar.markdown("© 2026 **Yajaira Leija**\nCapitana Albatros ⚓")
