@@ -82,43 +82,31 @@ if verificar_acceso():
         except Exception as e:
             st.error(f"Error al conectar con Google Sheets: {e}")
 
-    # --- MÓDULO 2: REGISTRO ---
-    elif menu == "Registrar Nuevo Cliente":
-        st.title("📝 Registro de Nuevo Cliente")
+if menu == "Registrar Nuevo Cliente":
+    st.title("📝 Registro de Nuevo Crédito")
+    
+    with st.form("registro_cliente"):
+        # ... (tus campos actuales: nombre, monto, etc.)
         
-        with st.form("form_registro"):
-            st.markdown("### 👤 Datos del Cliente")
-            col1, col2 = st.columns(2)
-            with col1:
-                nombre = st.text_input("Nombre Completo del Cliente")
-                monto = st.number_input("Monto del Préstamo", min_value=0)
-            with col2:
-                telefono = st.text_input("Teléfono Cliente")
-                fecha = st.date_input("Fecha de Préstamo", datetime.now())
+        st.markdown("### 🛡️ Información de Avales")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            aval1_nombre = st.text_input("Nombre Completo - Aval 1")
+            aval1_tel = st.text_input("Teléfono - Aval 1")
+            
+        with col2:
+            aval2_nombre = st.text_input("Nombre Completo - Aval 2")
+            aval2_tel = st.text_input("Teléfono - Aval 2")
 
-            if st.form_submit_button("💾 GUARDAR REGISTRO EN LA NUBE"):
-                if nombre and telefono:
-                    # Leer datos actuales para agregar el nuevo
-                    df_actual = conn.read(ttl=0)
-                    
-                    nuevo_registro = pd.DataFrame([{
-                        "fecha": fecha.strftime("%d/%m/%Y"),
-                        "nombre": nombre,
-                        "monto": monto,
-                        "teléfono": telefono,
-                        "estado": "Activo"
-                    }])
-                    
-                    df_final = pd.concat([df_actual, nuevo_registro], ignore_index=True)
-                    
-                    # ACTUALIZAR GOOGLE SHEETS
-                    conn.update(data=df_final)
-                    
-                    st.success(f"✅ ¡{nombre} guardado en Google Sheets!")
-                    st.balloons()
-                else:
-                    st.error("Falta nombre o teléfono.")
-
+        if st.form_submit_button("Guardar Registro"):
+            # AQUÍ AGREGAMOS LOS DATOS A LA LISTA QUE SE ENVÍA A GOOGLE
+            nuevo_registro = [
+                fecha_hoy, nombre, monto, telefono, 
+                aval1_nombre, aval1_tel,  # <--- Nuevos campos
+                aval2_nombre, aval2_tel   # <--- Nuevos campos
+            ]
+            # ... resto de tu código para guardar
     # --- PIE DE PÁGINA ---
     st.sidebar.markdown("---")
     st.sidebar.markdown("© 2026 **Yajaira Leija**\nCapitana Albatros ⚓")
