@@ -127,7 +127,36 @@ if verificar_acceso():
                             "tel aval 1": aval1_tel,
                             "aval 2": aval2_nombre,
                             "tel aval 2": aval2_tel
+                       # ... (después de los campos de avales)
+            st.markdown("### 📊 Estatus del Crédito")
+            estado = st.selectbox("Estado Inicial", ["Activo", "Pendiente", "Revision"])
+
+            submit = st.form_submit_button("🚀 Guardar en la Nube")
+
+            if submit:
+                if nombre and monto > 0 and telefono:
+                    try:
+                        df_actual = conn.read(ttl=0)
+                        
+                        nueva_fila = pd.DataFrame([{
+                            "fecha": fecha_hoy,
+                            "nombre": nombre,
+                            "monto": monto,
+                            "teléfono": telefono,
+                            "aval 1": aval1_nombre,
+                            "tel aval 1": aval1_tel,
+                            "aval 2": aval2_nombre,
+                            "tel aval 2": aval2_tel,
+                            "estado": estado  # <--- Nueva columna
                         }])
+                        
+                        df_final = pd.concat([df_actual, nueva_fila], ignore_index=True)
+                        conn.update(data=df_final)
+                        
+                        st.success(f"✅ ¡Registro de {nombre} guardado con éxito!")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"Error al guardar: {e}")                        }])
                         
                         # 3. Concatenamos y subimos
                         df_final = pd.concat([df_actual, nueva_fila], ignore_index=True)
