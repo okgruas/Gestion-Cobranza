@@ -134,9 +134,7 @@ if verificar_acceso():
                         conn.update(data=df_final)
                         
                         st.success(f"✅ ¡Registro de {nombre} guardado con éxito!")
-                        st.balloons         
-                        # AQUÍ AGREGAMOS LOS DATOS A LA LISTA QUE SE ENVÍA A GOOGLE
-            nuevo_registro = [
+                        st.balloons            nuevo_registro = [
                 fecha_hoy, nombre, monto, telefono, 
                 aval1_nombre, aval1_tel,  # <--- Nuevos campos
                 aval2_nombre, aval2_tel   # <--- Nuevos campos
