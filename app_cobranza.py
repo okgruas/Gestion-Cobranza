@@ -83,7 +83,6 @@ if verificar_acceso():
             st.error(f"Error al conectar con Google Sheets: {e}")
 
 # --- MÓDULO 2: REGISTRO DE NUEVO CLIENTE ---
-# --- MÓDULO 2: REGISTRO DE NUEVO CLIENTE ---
     if menu == "Registrar Nuevo Cliente":
         st.title("📝 Registro de Nuevo Crédito")
         
@@ -135,7 +134,6 @@ if verificar_acceso():
                         conn.update(data=df_final)
                         
                         st.success(f"✅ ¡Registro de {nombre} guardado con éxito!")
-                        st.balloons            # ... resto de tu código para guardar
-    # --- PIE DE PÁGINA ---
+                        st.balloons    # --- PIE DE PÁGINA ---
     st.sidebar.markdown("---")
     st.sidebar.markdown("© 2026 **Yajaira Leija**\nCapitana Albatros ⚓")
