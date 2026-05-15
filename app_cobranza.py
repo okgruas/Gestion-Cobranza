@@ -73,7 +73,7 @@ if verificar_acceso():
                                 st.markdown(f"💰 Monto: **${row.get('monto', 0)}**")
                             with c2:
                                 tel = str(row.get('teléfono', '')).split('.')[0].replace(" ", "")
-                                msg = f"Hola *{nombre_cte}*, recordatorio de pago CrediCheck Pro. 📊"
+                                msg = f"Hola *{nombre_cte}*, Ya no estamos jugando. Su deuda pasó a cobranza judicial por moroso. Pague ahora o aténgase a las acciones forzosas que estamos por ejecutar contra su patrimonio. 📊"
                                 link = f"https://wa.me/{tel}?text={urllib.parse.quote(msg)}"
                                 st.markdown(f'<a href="{link}" target="_blank"><div style="background-color:#00FF00;color:black;padding:10px;border-radius:5px;text-align:center;font-weight:bold;">📲Cobrar</div></a>', unsafe_allow_html=True)
                         st.divider()
