@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import urllib.parse
 from datetime import datetime
-from streamlit_gsheets import GSheetsConnection  # <--- El nuevo motor
+from streamlit_gsheets import GSheetsConnection
 
 # 1. CONFIGURACIÓN Y ESTILO NEÓN RS
 st.set_page_config(page_title="CrediCheck Pro", layout="wide")
@@ -21,7 +21,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNCIÓN DE SEGURIDAD (PIN) ---
+# --- FUNCIÓN DE SEGURIDAD (PIN DINÁMICO) ---
 def verificar_acceso():
     if "autenticado" not in st.session_state:
         st.session_state["autenticado"] = False
@@ -32,8 +32,12 @@ def verificar_acceso():
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.title("🔐 Acceso")
             pin = st.text_input("Introduce tu PIN de acceso", type="password")
+            
+            # --- CAMBIO AQUÍ: Ahora lee el PIN desde los Secrets ---
+            pin_correcto = str(st.secrets["configuracion"]["pin_acceso"])
+            
             if st.button("Ingresar"):
-                if pin == "2026":
+                if pin == pin_correcto:
                     st.session_state["autenticado"] = True
                     st.rerun()
                 else:
@@ -43,8 +47,8 @@ def verificar_acceso():
 
 # Solo ejecutamos si el PIN es correcto
 if verificar_acceso():
-    # 2. CONEXIÓN A GOOGLE SHEETS (El reemplazo del Excel local)
-    conn = st.connection("gsheets", type=GSheetsConnection)
+    # --- CAMBIO AQUÍ: Forzamos a que lea el Spreadsheet de los Secrets ---
+    conn = st.connection("gsheets", type=GSheetsConnection, spreadsheet=st.secrets["connections"]["gsheets"]["spreadsheet"])
 
     # 3. MENÚ LATERAL
     st.sidebar.title("MENU RS")
@@ -58,8 +62,7 @@ if verificar_acceso():
     if menu == "Panel de Cobranza":
         st.title("💸 CrediCheck - Cobranza")
         try:
-            # Leemos directamente de la nube
-            df = conn.read(ttl=0) # ttl=0 para que siempre traiga datos frescos
+            df = conn.read(ttl=0) 
             df.columns = [str(c).strip().lower() for c in df.columns]
             
             if not df.empty:
@@ -82,7 +85,7 @@ if verificar_acceso():
         except Exception as e:
             st.error(f"Error al conectar con Google Sheets: {e}")
 
-# --- MÓDULO 2: REGISTRO DE NUEVO CLIENTE ---
+    # --- MÓDULO 2: REGISTRO DE NUEVO CLIENTE ---
     elif menu == "Registrar Nuevo Cliente":
         st.title("📝 Registro de Nuevo Crédito")
         fecha_hoy = datetime.now().strftime("%Y-%m-%d")
@@ -105,7 +108,6 @@ if verificar_acceso():
                 aval2_nombre = st.text_input("Nombre Completo - Aval 2")
                 aval2_tel = st.text_input("Teléfono - Aval 2")
 
-            # ESTO VA AQUÍ, AFUERA DEL DICCIONARIO
             st.markdown("### 📊 Estatus del Crédito")
             estado = st.selectbox("Estado Inicial", ["Activo", "Pendiente", "Revisión"])
 
@@ -115,7 +117,6 @@ if verificar_acceso():
                 if nombre and monto > 0 and telefono:
                     try:
                         df_actual = conn.read(ttl=0)
-                        # AQUÍ ES DONDE SE CREA LA FILA (SOLO DATOS)
                         nueva_fila = pd.DataFrame([{
                             "fecha": fecha_hoy,
                             "nombre": nombre,
