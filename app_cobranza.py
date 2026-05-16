@@ -33,7 +33,7 @@ def verificar_acceso():
             st.title("🔐 Acceso")
             pin = st.text_input("Introduce tu PIN de acceso", type="password")
             if st.button("Ingresar"):
-                if pin == "2026":
+                if pin == st.secrets["configuracion"]["pin_acceso"]:
                     st.session_state["autenticado"] = True
                     st.rerun()
                 else:
