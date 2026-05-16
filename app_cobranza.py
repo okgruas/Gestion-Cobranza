@@ -44,7 +44,7 @@ def verificar_acceso():
 # Solo ejecutamos si el PIN es correcto
 if verificar_acceso():
     # 2. CONEXIÓN A GOOGLE SHEETS (El reemplazo del Excel local)
-    conn = st.connection("gsheets", type=GSheetsConnection)
+    conn = st.connection("gsheets", type=GSheetsConnection, spreadsheet=st.secrets["connections"]["gsheets"]["spreadsheet"])
 
     # 3. MENÚ LATERAL
     st.sidebar.title("MENU RS")
