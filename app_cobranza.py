@@ -33,7 +33,7 @@ def verificar_acceso():
             st.title("🔐 Acceso")
             pin = st.text_input("Introduce tu PIN de acceso", type="password")
             if st.button("Ingresar"):
-                if pin == st.secrets["configuracion"]["pin_acceso"]:
+                if pin == "2026":
                     st.session_state["autenticado"] = True
                     st.rerun()
                 else:
@@ -44,7 +44,7 @@ def verificar_acceso():
 # Solo ejecutamos si el PIN es correcto
 if verificar_acceso():
     # 2. CONEXIÓN A GOOGLE SHEETS (El reemplazo del Excel local)
-    conn = st.connection("gsheets", type=GSheetsConnection, spreadsheet=st.secrets["connections"]["gsheets"]["spreadsheet"])
+    conn = st.connection("gsheets", type=GSheetsConnection)
 
     # 3. MENÚ LATERAL
     st.sidebar.title("MENU RS")
