@@ -48,7 +48,7 @@ def verificar_acceso():
 # Solo ejecutamos si el PIN es correcto
 if verificar_acceso():
     # --- CAMBIO AQUÍ: Forzamos a que lea el Spreadsheet de los Secrets ---
-    conn = st.connection("gsheets", type=GSheetsConnection, spreadsheet=st.secrets["connections"]["gsheets"]["spreadsheet"])
+    pin_correcto = str(st.secrets["configuracion"]["pin_acceso"])
 
     # 3. MENÚ LATERAL
     st.sidebar.title("MENU RS")
