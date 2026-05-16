@@ -48,7 +48,7 @@ def verificar_acceso():
 # Solo ejecutamos si el PIN es correcto
 if verificar_acceso():
     # --- CAMBIO AQUÍ: Forzamos a que lea el Spreadsheet de los Secrets ---
-    pin_correcto = str(st.secrets["configuracion"]["pin_acceso"])
+    pin_correcto = "2026"
 
     # 3. MENÚ LATERAL
     st.sidebar.title("MENU RS")
