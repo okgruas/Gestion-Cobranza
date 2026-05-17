@@ -1,17 +1,18 @@
 import streamlit as st
 import pandas as pd
 
+# 1. CONFIGURACIÓN VISUAL
 st.set_page_config(page_title="CrediCheck Pro", layout="wide")
+st.markdown("<style>.stApp { background-color: #000; } h1, h2, h3, p { color: #0FF !important; }</style>", unsafe_allow_html=True)
 
-# Función especial para leer sin pedir permisos complicados
-def leer_excel_publico(url):
-    # Convertimos el link de edición en uno de exportación directa
-    csv_url = url.replace('/edit?usp=sharing', '/export?format=csv')
-    csv_url = csv_url.replace('/edit#gid=', '/export?format=csv&gid=')
-    if '/edit' in csv_url and '/export' not in csv_url:
-        csv_url = csv_url.replace('/edit', '/export?format=csv')
-    return pd.read_csv(csv_url)
+# --- FUNCIÓN PARA LEER GOOGLE SHEETS PUBLICADO ---
+def leer_publicado(url):
+    # Esto limpia el link para que sea un CSV directo
+    base = url.split('/edit')[0]
+    final_url = f"{base}/export?format=csv"
+    return pd.read_csv(final_url)
 
+# --- SISTEMA DE ACCESO ---
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
 
@@ -22,13 +23,14 @@ if not st.session_state["autenticado"]:
         pin_usuario = st.text_input("PIN", type="password")
         if st.button("Ingresar"):
             try:
-                # USA TU LINK DE LA HOJA VERDE AQUÍ
-                url_maestra = "https://docs.google.com/spreadsheets/d/11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8/edit"
-                df_m = leer_excel_publico(url_maestra)
+                # USA TU LINK DE LA HOJA CONTROL AQUÍ
+                url_control = "https://docs.google.com/spreadsheets/d/11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8/edit"
+                df_m = leer_publicado(url_control)
                 
-                # Limpiar nombres de columnas por si acaso
+                # Limpiar columnas
                 df_m.columns = df_m.columns.str.strip().lower()
                 
+                # Buscar PIN
                 match = df_m[df_m['pin'].astype(str).str.strip() == pin_usuario.strip()]
                 
                 if not match.empty:
@@ -39,11 +41,3 @@ if not st.session_state["autenticado"]:
                 else:
                     st.error("❌ PIN incorrecto")
             except Exception as e:
-                st.error("⚠️ Error de conexión. Verifica que el Excel esté en 'Cualquier persona con el enlace'")
-else:
-    st.success(f"Bienvenido: {st.session_state['nombre_cliente']}")
-    try:
-        df_p = leer_excel_publico(st.session_state["url_cliente"])
-        st.dataframe(df_p)
-    except:
-        st.error("Error al cargar tu base de datos personal.")
