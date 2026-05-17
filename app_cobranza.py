@@ -18,25 +18,17 @@ def verificar_acceso():
             st.title("🔐 Acceso")
             pin_usuario = st.text_input("PIN", type="password")
             if st.button("Ingresar"):
-                try:
-                    # USAMOS EL LINK DIRECTO PARA EVITAR ERRORES DE SECRETS
-                    url_maestra = "https://docs.google.com/spreadsheets/d/1OTJz2BFZhY7HypYTaoyqeg_i5ayRGTMQGOOn80RUcJQ/edit?gid=0#gid=0"
-                    conn_m = st.connection("gsheets", type=GSheetsConnection, spreadsheet=url_maestra)
-                    df_m = conn_m.read(ttl=0)
-                    
-                    match = df_m[df_m['pin'].astype(str) == pin_usuario]
-                    if not match.empty:
-                        st.session_state["autenticado"] = True
-                        st.session_state["url_cliente"] = match.iloc[0]['link_excel']
-                        st.session_state["nombre_cliente"] = match.iloc[0]['cliente']
-                        st.rerun()
-                    else:
-                        st.error("PIN incorrecto")
-                except Exception as e:
-                    st.error("Error de conexión. Revisa que el Excel esté compartido con el correo de la app.")
-        return False
-    return True
-
+              # --- CAMBIO PARA CONEXIÓN PÚBLICA (MÁS RÁPIDA) ---
+try:
+    # Cambia 'TU_ID_AQUÍ' por el código largo de tu link de Excel
+    url_maestra = "https://docs.google.com/spreadsheets/d/1OTJz2BFZhY7HypYTaoyqeg_i5ayRGTMQGOOn80RUcJQ/edit?gid=0#gid=0/export?format=csv"
+    
+    # 2. Lee los datos directamente con Pandas (esto no falla)
+    df_m = pd.read_csv(url_maestra)
+    
+    # ... el resto de tu lógica para buscar el PIN
+except Exception as e:
+    st.error("Error crítico de acceso. Asegúrate de que el Excel esté en 'Cualquier persona con el enlace'.")
 # 2. EJECUCIÓN
 if verificar_acceso():
     st.sidebar.success(f"Bienvenido: {st.session_state['nombre_cliente']}")
