@@ -33,7 +33,7 @@ def verificar_acceso():
             st.title("🔐 Acceso")
     pin_ingresado = st.text_input("Introduce tu PIN de acceso", type="password")
         
-        if st.button("Ingresar"):
+    if st.button("Ingresar"):
             try:
                 # 1. Conectamos a la Hoja Maestra (Control de Renta)
                 # El link de la Hoja Maestra debe estar en los Secrets de Streamlit
@@ -58,13 +58,13 @@ def verificar_acceso():
             pin_correcto = str(st.secrets["configuracion"]["pin_acceso"])
             
             if st.button("Ingresar"):
-                if pin == pin_correcto:
+            if pin == pin_correcto:
                     st.session_state["autenticado"] = True
                     st.rerun()
                 else:
                     st.error("❌ PIN incorrecto")
         return False
-    return True
+        return True
 
 # Solo ejecutamos si el PIN es correcto
 if verificar_acceso():
