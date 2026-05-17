@@ -61,7 +61,7 @@ def verificar_acceso():
 # Ejecución principal
 if verificar_acceso():
     # CONEXIÓN AL EXCEL PERSONALIZADO DEL CLIENTE
-    conn = st.connection("gsheets", type=GSheetsConnection, spreadsheet=st.session_state["url_cliente"])
+    conn = st.connection("gsheets", type=GSheetsConnection, spreadsheet="https://docs.google.com/spreadsheets/d/TU_ID_AQUI/edit"
 
     st.sidebar.title(f"MENU: {st.session_state['nombre_cliente']}")
     if st.sidebar.button("Cerrar Sesión"):
