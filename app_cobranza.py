@@ -1,56 +1,55 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
+import pandas as pd
 
-# 1. ESTILO RELAJANTE
+# 1. ESTILO RELAJANTE (Gris oscuro para tus ojitos)
 st.set_page_config(page_title="Gestión Cobranza", layout="wide")
 st.markdown("<style>.stApp { background-color: #121212; } h1,h2,p { color: #BBB !important; }</style>", unsafe_allow_html=True)
 
-# Conexión oficial (Usa los secretos que ya configuraste)
-conn = st.connection("gsheets", type=GSheetsConnection)
+def cargar_csv_publico(url_publica):
+    try:
+        # Forzamos a que no use caché guardada
+        df = pd.read_csv(url_publica)
+        df.columns = [str(c).strip().lower() for c in df.columns]
+        return df
+    except:
+        return None
 
-if "auth" not in st.session_state:
-    st.session_state["auth"] = False
+if "acceso_ok" not in st.session_state:
+    st.session_state["acceso_ok"] = False
 
-if not st.session_state["auth"]:
+if not st.session_state["acceso_ok"]:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.title("🏦 Gestión Cobranza")
-        pin_in = st.text_input("PIN de Acceso", type="password")
+        pin_ingresado = st.text_input("PIN de Seguridad", type="password")
         
-        if st.button("Entrar"):
-            # ID DE TU COPIA NUEVA O ACTUAL
-            URL_CONTROL = "https://docs.google.com/spreadsheets/d/11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8/edit"
+        if st.button("Ingresar"):
+            # PEGA AQUÍ EL LINK DE "PUBLICAR EN LA WEB" (EL QUE TERMINA EN .csv)
+            LINK_CONTROL_CSV = "TU_LINK_AQUI" 
             
-            try:
-                # Leemos la pestaña 'Control' de forma oficial
-                df = conn.read(spreadsheet=URL_CONTROL, worksheet="Control", ttl=0)
-                df.columns = [str(c).strip().lower() for c in df.columns]
+            st.cache_data.clear()
+            df_auth = cargar_csv_publico(LINK_CONTROL_CSV)
+            
+            if df_auth is not None and 'pin' in df_auth.columns:
+                df_auth['pin'] = df_auth['pin'].astype(str).str.strip()
+                match = df_auth[df_auth['pin'] == pin_ingresado.strip()]
                 
-                if 'pin' in df.columns:
-                    df['pin'] = df['pin'].astype(str).str.strip()
-                    user = df[df['pin'] == pin_in.strip()]
-                    
-                    if not user.empty:
-                        st.session_state["auth"] = True
-                        st.session_state["cliente"] = user.iloc[0].to_dict()
-                        st.rerun()
-                    else:
-                        st.error("❌ PIN incorrecto.")
+                if not match.empty:
+                    st.session_state["acceso_ok"] = True
+                    st.session_state["datos_usuario"] = match.iloc[0].to_dict()
+                    st.rerun()
                 else:
-                    st.error("⚠️ No encuentro la columna 'pin'. Revisa el nombre en el Excel.")
-            except Exception as e:
-                st.error(f"Error de conexión: {e}")
+                    st.error("❌ PIN incorrecto.")
+            else:
+                st.error("⚠️ Error: El link de publicación no es válido o no tiene la columna 'pin'.")
 else:
-    st.header(f"Bienvenida, {st.session_state['cliente']['cliente']}")
+    # --- PANEL DEL CLIENTE ---
+    u = st.session_state["datos_usuario"]
+    st.header(f"Bienvenida, {u['cliente']}")
     
-    # Cargar datos del cliente
-    try:
-        url_cl = st.session_state["cliente"]["link_excel"]
-        df_cl = conn.read(spreadsheet=url_cl, ttl=0)
-        st.dataframe(df_cl, use_container_width=True)
-    except:
-        st.error("No se pudo cargar el archivo del cliente.")
-
-    if st.button("Salir"):
-        st.session_state["auth"] = False
+    # Aquí puedes seguir usando tu lógica para el Excel del cliente
+    st.info("Ya estás dentro del sistema.")
+    
+    if st.button("Cerrar Sesión"):
+        st.session_state["acceso_ok"] = False
         st.rerun()
