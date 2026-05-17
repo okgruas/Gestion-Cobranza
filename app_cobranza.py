@@ -31,7 +31,7 @@ def verificar_acceso():
         with col_b:
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.title("🔐 Acceso")
-           pin_ingresado = st.text_input("Introduce tu PIN de acceso", type="password")
+    pin_ingresado = st.text_input("Introduce tu PIN de acceso", type="password")
         
         if st.button("Ingresar"):
             try:
