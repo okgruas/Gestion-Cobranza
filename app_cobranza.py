@@ -1,71 +1,84 @@
 import streamlit as st
 import pandas as pd
 
-# 1. ESTILO
+# 1. CONFIGURACIÓN VISUAL (Colores más suaves para tus ojos)
 st.set_page_config(page_title="Gestión Cobranza", layout="wide")
-st.markdown("<style>.stApp { background-color: #000; } h1,h2,h3,p,label { color: #0FF !important; }</style>", unsafe_allow_html=True)
+st.markdown("""
+    <style>
+    .stApp { background-color: #0E1117; } /* Un gris muy oscuro, menos pesado que el negro puro */
+    h1, h2, h3, p, label { color: #E0E0E0 !important; } /* Blanco suave, no brilla tanto */
+    .stButton>button { background-color: #262730; color: #0FF; border: 1px solid #0FF; }
+    </style>
+    """, unsafe_allow_html=True)
 
-def cargar_datos_seguros(spreadsheet_id, nombre_hoja="Control"):
+def obtener_datos_directos(spreadsheet_id, hoja="Control"):
     try:
-        # Forzamos la lectura del ID específico y la hoja específica
-        # Esto evita que la llave JSON abra el archivo de avales por error
-        url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet={nombre_hoja}"
+        # Este link es "mágico": obliga a Google a darte UNA HOJA específica por su nombre
+        url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/gviz/tq?tqx=out:csv&sheet={hoja}"
         df = pd.read_csv(url)
+        # Limpiamos los nombres de las columnas
         df.columns = [str(c).strip().lower() for c in df.columns]
         return df
     except Exception as e:
         return None
 
-if "acceso" not in st.session_state:
-    st.session_state["acceso"] = False
+# --- LÓGICA DE ACCESO ---
+if "logueado" not in st.session_state:
+    st.session_state["logueado"] = False
 
-if not st.session_state["acceso"]:
+if not st.session_state["logueado"]:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.title("🏦 Gestión Cobranza")
-        st.subheader("Acceso Administrativo")
-        pin_user = st.text_input("PIN de Seguridad", type="password")
+        st.write("### Acceso Administrativo")
+        # Tu PIN es 1990 según tu Excel
+        pin_ingreso = st.text_input("PIN de Seguridad", type="password", help="Introduce tu código de 4 dígitos")
         
-        if st.button("Ingresar Sistema"):
-            # ID EXCLUSIVO DE TU HOJA DE CONTROL
+        if st.button("Entrar al Sistema"):
+            # ID de tu archivo de CONTROL
             ID_CONTROL = "11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8"
             
             st.cache_data.clear()
-            # Le pedimos específicamente la hoja "Control"
-            df_auth = cargar_datos_seguros(ID_CONTROL, "Control")
+            # Forzamos que lea la pestaña que se llama exactamente 'Control'
+            df_control = obtener_datos_directos(ID_CONTROL, "Control")
             
-            if df_auth is not None and 'pin' in df_auth.columns:
-                df_auth['pin'] = df_auth['pin'].astype(str).str.strip()
-                user_match = df_auth[df_auth['pin'] == pin_user.strip()]
+            if df_control is not None and 'pin' in df_control.columns:
+                df_control['pin'] = df_control['pin'].astype(str).str.strip()
+                busqueda = df_control[df_control['pin'] == pin_ingreso.strip()]
                 
-                if not user_match.empty:
-                    st.session_state["acceso"] = True
-                    st.session_state["url_cliente"] = user_match.iloc[0]['link_excel']
-                    st.session_state["nombre_cl"] = user_match.iloc[0]['cliente']
+                if not busqueda.empty:
+                    st.session_state["logueado"] = True
+                    st.session_state["datos_cl"] = busqueda.iloc[0].to_dict()
                     st.rerun()
                 else:
-                    st.error("❌ PIN no encontrado en la base de datos.")
+                    st.error("❌ El PIN no es correcto.")
             else:
-                st.warning("⚠️ Error Crítico: La llave JSON sigue abriendo el archivo de Avales.")
-                if df_auth is not None:
-                    st.info(f"Columnas detectadas: {list(df_auth.columns)}")
-                    st.info("Acción: Asegúrate de que la pestaña en tu Excel se llame exactamente 'Control'.")
+                # Si esto sale, es que Google mandó la hoja de avales otra vez
+                st.error("⚠️ Error Crítico de Lectura")
+                if df_control is not None:
+                    st.info(f"Columnas encontradas: {list(df_control.columns)}")
+                    st.warning("Revisa que la pestaña en tu Excel se llame exactamente 'Control' con la 'C' mayúscula.")
 
 else:
-    # --- VISTA DE DATOS DEL CLIENTE ---
-    st.header(f"Bienvenida, {st.session_state['nombre_cl']}")
+    # --- PANEL PRINCIPAL (AQUÍ YA ENTRASTE) ---
+    st.header(f"Bienvenida al Sistema")
+    cliente = st.session_state["datos_cl"]
+    st.success(f"Sesión activa: {cliente['cliente']}")
     
-    # Extraemos el ID del link del cliente guardado en la hoja de control
+    # Intentamos cargar el archivo específico del cliente que está en la columna C
     try:
-        id_cliente = st.session_state["url_cliente"].split('/d/')[1].split('/')[0]
-        df_final = cargar_datos_seguros(id_cliente) # Aquí lee la primera hoja por defecto
+        # Extraemos el ID del link largo del cliente
+        id_cliente_excel = cliente['link_excel'].split('/d/')[1].split('/')[0]
+        df_pagos = obtener_datos_directos(id_cliente_excel) # Aquí lee la primera hoja por defecto
         
-        if df_final is not None:
-            st.write("### Historial y Avales")
-            st.dataframe(df_final, use_container_width=True)
+        if df_pagos is not None:
+            st.subheader("📋 Información de Pagos y Avales")
+            st.dataframe(df_pagos, use_container_width=True)
+        else:
+            st.info("No se encontraron registros en el archivo del cliente.")
     except:
-        st.error("No se pudo obtener el ID del archivo del cliente.")
+        st.error("El enlace al Excel del cliente no es válido.")
 
-    if st.button("Salir"):
-        st.session_state["acceso"] = False
+    if st.button("Cerrar Sesión"):
+        st.session_state["logueado"] = False
         st.rerun()
