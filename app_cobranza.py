@@ -1,24 +1,26 @@
 import streamlit as st
 import pandas as pd
 
-# 1. CONFIGURACIÓN
+# 1. CONFIGURACIÓN VISUAL
 st.set_page_config(page_title="CrediCheck Pro", layout="wide")
 st.markdown("<style>.stApp { background-color: #000; } h1,h2,h3,p,label { color: #0FF !important; }</style>", unsafe_allow_html=True)
 
-# Función con 'cache_data' desactivado para que no se guarden archivos viejos
-def leer_excel_fresco(url):
+# --- EL LINK DE TU HOJA DE CONTROL (TU GMAIL) ---
+# Asegúrate de que este link sea el de la hoja que tiene las columnas: cliente, pin, link_excel
+LINK_CONTROL = "https://docs.google.com/spreadsheets/d/11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8/edit"
+
+def leer_excel_directo(url):
     try:
-        # Forzamos link de descarga directa CSV
+        # Forzamos la descarga limpia
         csv_url = url.split('/edit')[0] + '/export?format=csv'
-        # Leemos el archivo sin guardar nada en la memoria de la app
         df = pd.read_csv(csv_url)
-        # Limpieza radical de nombres de columnas
+        # Limpieza extrema de títulos
         df.columns = [str(c).strip().lower() for c in df.columns]
         return df
     except:
         return None
 
-# --- REINICIO TOTAL ---
+# --- LÓGICA DE NAVEGACIÓN ---
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
 
@@ -26,54 +28,44 @@ if not st.session_state["autenticado"]:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.title("🔐 Acceso")
-        pin_usuario = st.text_input("PIN de Acceso", type="password")
+        pin_ingresado = st.text_input("Ingresa tu PIN", type="password")
         
-        if st.button("Verificar PIN"):
-            # LINK DE TU HOJA DE CONTROL (TU GMAIL PRINCIPAL)
-            url_maestra = "https://docs.google.com/spreadsheets/d/11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8/edit"
-            
-            # Borramos cualquier rastro del archivo anterior antes de leer
-            st.cache_data.clear() 
-            df_m = leer_excel_fresco(url_maestra)
+        if st.button("Entrar"):
+            # OBLIGAMOS a leer el LINK_CONTROL que definimos arriba
+            df_m = leer_excel_directo(LINK_CONTROL)
             
             if df_m is not None:
-                # Buscamos la columna PIN
-                col_pin = [c for c in df_m.columns if 'pin' in c]
-                if col_pin:
-                    df_m[col_pin[0]] = df_m[col_pin[0]].astype(str).str.strip()
-                    match = df_m[df_m[col_pin[0]] == pin_usuario.strip()]
+                # Si encuentra la columna PIN, validamos
+                if 'pin' in df_m.columns:
+                    df_m['pin'] = df_m['pin'].astype(str).str.strip()
+                    usuario = df_m[df_m['pin'] == pin_ingresado.strip()]
                     
-                    if not match.empty:
+                    if not usuario.empty:
                         st.session_state["autenticado"] = True
-                        # Buscamos el link del otro Excel y el nombre
-                        c_link = [c for c in df_m.columns if 'link' in c][0]
-                        c_nom = [c for c in df_m.columns if 'cliente' in c or 'nombre' in c][0]
-                        
-                        st.session_state["url_cliente"] = match.iloc[0][c_link]
-                        st.session_state["nombre"] = match.iloc[0][c_nom]
+                        # Guardamos el link del otro correo (el del cliente)
+                        st.session_state["url_cliente"] = usuario.iloc[0]['link_excel']
+                        st.session_state["nombre"] = usuario.iloc[0]['cliente']
                         st.rerun()
                     else:
-                        st.error("❌ PIN no registrado en Control.")
+                        st.error("❌ PIN no registrado en la hoja de Control.")
                 else:
-                    st.warning(f"⚠️ Leyendo archivo equivocado. Columnas: {list(df_m.columns)}")
+                    # Este mensaje te dirá qué está leyendo realmente
+                    st.warning(f"⚠️ ¡Error! Estoy leyendo otro archivo. Columnas detectadas: {list(df_m.columns)}")
             else:
-                st.error("❌ No pude conectar con la Hoja de Control.")
-
+                st.error("❌ No se pudo conectar con la hoja de Control.")
 else:
-    # --- PANTALLA DEL CLIENTE ---
+    # --- VISTA DEL CLIENTE ---
     st.header(f"Bienvenida, {st.session_state['nombre']}")
     
-    # Aquí lee el Excel que está en el otro correo/cuenta
-    df_c = leer_excel_fresco(st.session_state["url_cliente"])
+    # Aquí es el ÚNICO lugar donde lee el Excel del cliente (del otro correo)
+    df_c = leer_excel_directo(st.session_state["url_cliente"])
     
     if df_c is not None:
-        st.subheader("Información de Cobranza")
+        st.subheader("Tu Estado de Cuenta")
         st.dataframe(df_c, use_container_width=True)
     else:
         st.info("Asegúrate de que el Excel del cliente esté 'Publicado en la web'.")
     
     if st.button("Cerrar Sesión"):
-        # Al salir, borramos todo para que el siguiente cliente no vea basura
-        for key in st.session_state.keys():
-            del st.session_state[key]
+        st.session_state["autenticado"] = False
         st.rerun()
