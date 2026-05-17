@@ -1,18 +1,18 @@
 import streamlit as st
 import pandas as pd
 
-# 1. CONFIGURACIÓN VISUAL
+# 1. CONFIGURACIÓN DE LA PÁGINA
 st.set_page_config(page_title="CrediCheck Pro", layout="wide")
-st.markdown("<style>.stApp { background-color: #000; } h1, h2, h3, p { color: #0FF !important; }</style>", unsafe_allow_html=True)
 
-# --- FUNCIÓN PARA LEER GOOGLE SHEETS PUBLICADO ---
-def leer_publicado(url):
-    # Esto limpia el link para que sea un CSV directo
-    base = url.split('/edit')[0]
-    final_url = f"{base}/export?format=csv"
-    return pd.read_csv(final_url)
+# Función para leer los datos publicados (el "túnel" seguro)
+def leer_datos(url):
+    try:
+        csv_url = url.split('/edit')[0] + '/export?format=csv'
+        return pd.read_csv(csv_url)
+    except:
+        return None
 
-# --- SISTEMA DE ACCESO ---
+# 2. SISTEMA DE ACCESO
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
 
@@ -22,15 +22,12 @@ if not st.session_state["autenticado"]:
         st.title("🔐 Acceso")
         pin_usuario = st.text_input("PIN", type="password")
         if st.button("Ingresar"):
-            try:
-                # USA TU LINK DE LA HOJA CONTROL AQUÍ
-                url_control = "https://docs.google.com/spreadsheets/d/11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8/edit"
-                df_m = leer_publicado(url_control)
-                
-                # Limpiar columnas
+            # LINK DE TU HOJA CONTROL (LA QUE TIENE LOS PINs)
+            url_maestra = "https://docs.google.com/spreadsheets/d/11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8/edit"
+            df_m = leer_datos(url_maestra)
+            
+            if df_m is not None:
                 df_m.columns = df_m.columns.str.strip().lower()
-                
-                # Buscar PIN
                 match = df_m[df_m['pin'].astype(str).str.strip() == pin_usuario.strip()]
                 
                 if not match.empty:
@@ -40,4 +37,18 @@ if not st.session_state["autenticado"]:
                     st.rerun()
                 else:
                     st.error("❌ PIN incorrecto")
-            except Exception as e:
+            else:
+                st.error("⚠️ Error de conexión con la base central.")
+else:
+    # 3. PANTALLA DEL CLIENTE
+    st.success(f"Bienvenida: {st.session_state['nombre_cliente']}")
+    df_p = leer_datos(st.session_state["url_cliente"])
+    if df_p is not None:
+        st.write("### Tus Movimientos Actualizados")
+        st.dataframe(df_p)
+    else:
+        st.error("No se pudo cargar tu base personal.")
+    
+    if st.button("Cerrar Sesión"):
+        st.session_state["autenticado"] = False
+        st.rerun()
