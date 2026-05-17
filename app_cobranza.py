@@ -20,7 +20,7 @@ def verificar_acceso():
             if st.button("Ingresar"):
                 try:
                     # USAMOS EL LINK DIRECTO PARA EVITAR ERRORES DE SECRETS
-                    url_maestra = "1OTJz2BFZhY7HypYTaoyqeg_i5ayRGTMQGOOn80RUcJQ/edit?gid=0#gid=0"
+                    url_maestra = "https://docs.google.com/spreadsheets/d/1OTJz2BFZhY7HypYTaoyqeg_i5ayRGTMQGOOn80RUcJQ/edit?gid=0#gid=0"
                     conn_m = st.connection("gsheets", type=GSheetsConnection, spreadsheet=url_maestra)
                     df_m = conn_m.read(ttl=0)
                     
