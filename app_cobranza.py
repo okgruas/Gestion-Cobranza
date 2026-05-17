@@ -1,68 +1,68 @@
 import streamlit as st
 import pandas as pd
 
-# 1. ESTILO ALBATROS (Fondo oscuro y cian)
-st.set_page_config(page_title="CrediCheck Pro", layout="wide")
+# 1. CONFIGURACIÓN VISUAL
+st.set_page_config(page_title="Gestión Cobranza", layout="wide")
 st.markdown("<style>.stApp { background-color: #000; } h1,h2,h3,p,label { color: #0FF !important; }</style>", unsafe_allow_html=True)
 
-# --- FUNCIÓN DE LECTURA DIRECTA ---
-def cargar_excel(url):
+def obtener_datos(url):
     try:
-        # Limpiamos el link para que sea descarga directa
-        url_limpia = url.split('/edit')[0] + '/export?format=csv'
-        df = pd.read_csv(url_limpia)
+        # Convertimos a descarga directa CSV
+        csv_url = url.split('/edit')[0] + '/export?format=csv'
+        df = pd.read_csv(csv_url)
         df.columns = [str(c).strip().lower() for c in df.columns]
         return df
     except:
         return None
 
-# --- CONTROL DE ACCESO ---
-if "entró" not in st.session_state:
-    st.session_state["entró"] = False
+if "sesion" not in st.session_state:
+    st.session_state["sesion"] = False
 
-if not st.session_state["entró"]:
+if not st.session_state["sesion"]:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.title("🚀 Panel Albatros")
-        pin = st.text_input("Ingresa tu PIN", type="password")
+        st.title("🏦 Gestión Cobranza")
+        pin_ingresado = st.text_input("Introduce tu PIN", type="password")
         
-        if st.button("Despegar"):
-            # LINK DE TU HOJA CONTROL (TU GMAIL)
-            maestra = "https://docs.google.com/spreadsheets/d/11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8/edit"
+        if st.button("Ingresar"):
+            # URL DE TU HOJA DE CONTROL (GMAIL PERSONAL)
+            url_maestra = "https://docs.google.com/spreadsheets/d/11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8/edit"
             
-            # Limpiamos memoria antes de buscar
+            # Limpiamos memoria para forzar lectura de la hoja correcta
             st.cache_data.clear()
-            df_m = cargar_excel(maestra)
+            df_control = obtener_datos(url_maestra)
             
-            if df_m is not None:
-                if 'pin' in df_m.columns:
-                    df_m['pin'] = df_m['pin'].astype(str).str.strip()
-                    usuario = df_m[df_m['pin'] == pin.strip()]
+            if df_control is not None:
+                # Verificamos si leyó la hoja de control o la de pagos
+                if 'pin' in df_control.columns:
+                    df_control['pin'] = df_control['pin'].astype(str).str.strip()
+                    match = df_control[df_control['pin'] == pin_ingresado.strip()]
                     
-                    if not usuario.empty:
-                        st.session_state["entró"] = True
-                        st.session_state["url_cl"] = usuario.iloc[0]['link_excel']
-                        st.session_state["nombre_cl"] = usuario.iloc[0]['cliente']
+                    if not match.empty:
+                        st.session_state["sesion"] = True
+                        st.session_state["link_cliente"] = match.iloc[0]['link_excel']
+                        st.session_state["nombre_cl"] = match.iloc[0]['cliente']
                         st.rerun()
                     else:
-                        st.error("❌ PIN no registrado.")
+                        st.error("❌ PIN incorrecto")
                 else:
-                    st.warning(f"⚠️ Columnas en Control: {list(df_m.columns)}")
+                    st.error(f"⚠️ Error: La app leyó el archivo de pagos. Columnas: {list(df_control.columns)}")
+                    st.info("Asegúrate de que en tu Excel de Control, la pestaña 'Control' sea la primera de la izquierda.")
             else:
-                st.error("❌ No pude conectar con tu Gmail. Revisa el link.")
+                st.error("❌ Error de conexión con Google Sheets")
+
 else:
-    # --- PANTALLA DEL CLIENTE ---
     st.header(f"Bienvenida, {st.session_state['nombre_cl']}")
     
-    # Lee el Excel que está en el correo del cliente
-    df_cl = cargar_excel(st.session_state["url_cl"])
+    # Lectura del Excel del cliente
+    df_pagos = obtener_datos(st.session_state["link_cliente"])
     
-    if df_cl is not None:
+    if df_pagos is not None:
         st.subheader("Estado de Cuenta")
-        st.table(df_cl)
+        st.dataframe(df_pagos, use_container_width=True)
     else:
-        st.info("Asegúrate de que el Excel del cliente esté 'Publicado en la web'.")
+        st.warning("No se pudo cargar la información del cliente.")
     
     if st.button("Cerrar Sesión"):
-        st.session_state["entró"] = False
+        st.session_state["sesion"] = False
         st.rerun()
