@@ -33,7 +33,7 @@ if not st.session_state["auth"]:
         
         if st.button("Acceder al Sistema"):
             # TU ID DE CONTROL
-            ID_FILE = "11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8"
+            ID_FILE = "18XlxOBOtMXD2EneJIMbjXEueaErWzkzX6XVm9a5Uo40/edit?gid=0#gid=0"
             
             st.cache_data.clear()
             # PROBAMOS CON GID=0 (La primera hoja de tu Excel)
