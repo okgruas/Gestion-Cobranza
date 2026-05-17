@@ -31,8 +31,29 @@ def verificar_acceso():
         with col_b:
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.title("🔐 Acceso")
-            pin = st.text_input("Introduce tu PIN de acceso", type="password")
-            
+           pin_ingresado = st.text_input("Introduce tu PIN de acceso", type="password")
+        
+        if st.button("Ingresar"):
+            try:
+                # 1. Conectamos a la Hoja Maestra (Control de Renta)
+                # El link de la Hoja Maestra debe estar en los Secrets de Streamlit
+                conn_maestra = st.connection("gsheets", type=GSheetsConnection, 
+                                            spreadsheet=st.secrets["connections"]["gsheets"]["hoja_maestra"])
+                df_maestra = conn_maestra.read(ttl=0)
+                
+                # 2. Buscamos si el PIN que metieron existe
+                match = df_maestra[df_maestra['pin'].astype(str) == pin_ingresado]
+                
+                if not match.empty:
+                    st.session_state["autenticado"] = True
+                    # Guardamos el link del Excel personal de este cliente
+                    st.session_state["url_personal"] = match.iloc[0]['link_excel']
+                    st.success(f"✅ Bienvenida, {match.iloc[0]['cliente']}")
+                    st.rerun()
+                else:
+                    st.error("❌ PIN no reconocido o renta vencida")
+            except Exception as e:
+                st.error("Error de conexión con la central de acceso.")
             # --- CAMBIO AQUÍ: Ahora lee el PIN desde los Secrets ---
             pin_correcto = str(st.secrets["configuracion"]["pin_acceso"])
             
