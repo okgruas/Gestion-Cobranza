@@ -5,67 +5,70 @@ import pandas as pd
 st.set_page_config(page_title="CrediCheck Pro", layout="wide")
 st.markdown("<style>.stApp { background-color: #000; } h1, h2, h3, p { color: #0FF !important; }</style>", unsafe_allow_html=True)
 
-def leer_datos_ultra_seguro(url):
+def leer_datos(url):
     try:
-        # Forzamos la descarga del CSV
+        # Convertimos link de edición a link de exportación directa
         csv_url = url.split('/edit')[0] + '/export?format=csv'
         df = pd.read_csv(csv_url)
-        # LIMPIEZA EXTREMA: Quitamos espacios, pasamos a minúsculas y eliminamos caracteres raros
-        df.columns = [str(c).strip().lower().replace(' ', '') for c in df.columns]
+        # Limpieza de encabezados
+        df.columns = [str(c).strip().lower() for c in df.columns]
         return df
-    except:
+    except Exception as e:
+        st.error(f"Error al leer: {e}")
         return None
 
-# --- SISTEMA DE ACCESO ---
+# --- ACCESO ---
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
 
 if not st.session_state["autenticado"]:
-    col_a, col_b, col_c = st.columns([1, 1, 1])
-    with col_b:
-        st.title("🔐 Acceso")
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.title("🔐 Acceso de Clientes")
         pin_usuario = st.text_input("Ingresa tu PIN", type="password")
+        
         if st.button("Ingresar"):
-            # TU LINK DE CONTROL
+            # LINK DE TU HOJA "CONTROL" (LA QUE TIENE LOS PINS)
+            # Asegúrate de que este link sea el de la hoja con columnas: cliente, pin, link_excel
             url_maestra = "https://docs.google.com/spreadsheets/d/11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8/edit"
-            df_m = leer_datos_ultra_seguro(url_maestra)
             
-            if df_m is not None:
-                # BUSCAMOS LA COLUMNA QUE SE PAREZCA A 'PIN'
-                col_pin = [c for c in df_m.columns if 'pin' in c]
+            df_control = leer_datos(url_maestra)
+            
+            if df_control is not None:
+                # Debug para ti: muestra qué columnas encontró en la maestra
+                # st.write(f"Columnas en Control: {list(df_control.columns)}") 
                 
-                if col_pin:
-                    # Limpiamos los datos de esa columna por si tienen espacios
-                    df_m[col_pin[0]] = df_m[col_pin[0]].astype(str).str.strip()
-                    match = df_m[df_m[col_pin[0]] == pin_usuario.strip()]
+                if 'pin' in df_control.columns:
+                    # Buscamos el PIN
+                    df_control['pin'] = df_control['pin'].astype(str).str.strip()
+                    usuario = df_control[df_control['pin'] == pin_usuario.strip()]
                     
-                    if not match.empty:
+                    if not usuario.empty:
                         st.session_state["autenticado"] = True
-                        # Buscamos columnas de link y nombre de forma flexible
-                        c_link = [c for c in df_m.columns if 'link' in c][0]
-                        c_nom = [c for c in df_m.columns if 'cliente' in c or 'nombre' in c][0]
-                        
-                        st.session_state["url_cliente"] = match.iloc[0][c_link]
-                        st.session_state["nombre_cliente"] = match.iloc[0][c_nom]
+                        # Guardamos los datos del cliente que entró
+                        st.session_state["url_personal"] = usuario.iloc[0]['link_excel']
+                        st.session_state["nombre_cliente"] = usuario.iloc[0]['cliente']
                         st.rerun()
                     else:
-                        st.error("❌ PIN no encontrado en la lista.")
+                        st.error("❌ PIN incorrecto.")
                 else:
-                    # Si falla, te mostramos qué columnas está leyendo la app para corregirlo rápido
-                    st.warning(f"⚠️ Columnas detectadas: {list(df_m.columns)}")
-                    st.error("No se detectó la columna 'pin'. Asegúrate de que la celda B1 de tu Excel diga 'pin'.")
+                    st.error("⚠️ La hoja de control no tiene una columna llamada 'pin'.")
             else:
-                st.error("⚠️ Error de conexión. El Excel no está respondiendo.")
+                st.error("❌ No pude conectar con la base de datos de control.")
+
 else:
-    # --- PANTALLA DEL CLIENTE ---
-    st.success(f"Bienvenida: {st.session_state['nombre_cliente']}")
-    df_p = leer_datos_ultra_seguro(st.session_state["url_cliente"])
-    if df_p is not None:
-        st.write("### Estado de Cuenta")
-        st.dataframe(df_p)
-    else:
-        st.error("No se pudo cargar la base personal. Verifica que esté 'Publicada en la web'.")
+    # --- VISTA DEL CLIENTE ---
+    st.header(f"Bienvenida, {st.session_state['nombre_cliente']}")
     
+    # Aquí es donde RECIÉN lee el Excel del cliente
+    df_cliente = leer_datos(st.session_state["url_personal"])
+    
+    if df_cliente is not None:
+        st.subheader("Tu Estado de Cuenta")
+        st.dataframe(df_cliente, use_container_width=True)
+    else:
+        st.warning("No se pudo cargar tu información detallada.")
+
     if st.button("Cerrar Sesión"):
         st.session_state["autenticado"] = False
         st.rerun()
