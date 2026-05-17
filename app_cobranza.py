@@ -1,55 +1,64 @@
 import streamlit as st
 import pandas as pd
+import random
 
-# 1. ESTILO RELAJANTE (Gris oscuro para tus ojitos)
+# Configuración visual para descansar la vista
 st.set_page_config(page_title="Gestión Cobranza", layout="wide")
-st.markdown("<style>.stApp { background-color: #121212; } h1,h2,p { color: #BBB !important; }</style>", unsafe_allow_html=True)
+st.markdown("<style>.stApp { background-color: #0E1117; } h1,h2,p,label { color: #E0E0E0 !important; }</style>", unsafe_allow_html=True)
 
-def cargar_csv_publico(url_publica):
+def leer_excel_fresco(url_base):
     try:
-        # Forzamos a que no use caché guardada
-        df = pd.read_csv(url_publica)
+        # Generamos un número aleatorio para romper la memoria de Google
+        rompe_cache = random.randint(1, 999999)
+        # Forzamos la descarga del CSV de la primera pestaña (gid=0)
+        url_final = f"{url_base}/export?format=csv&gid=0&cache={rompe_cache}"
+        df = pd.read_csv(url_final)
+        # Limpieza estándar de columnas
         df.columns = [str(c).strip().lower() for c in df.columns]
         return df
-    except:
+    except Exception as e:
         return None
 
-if "acceso_ok" not in st.session_state:
-    st.session_state["acceso_ok"] = False
+if "sesion" not in st.session_state:
+    st.session_state["sesion"] = False
 
-if not st.session_state["acceso_ok"]:
+if not st.session_state["sesion"]:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.title("🏦 Gestión Cobranza")
-        pin_ingresado = st.text_input("PIN de Seguridad", type="password")
+        pin_test = st.text_input("PIN de Seguridad", type="password")
         
-        if st.button("Ingresar"):
-            # PEGA AQUÍ EL LINK DE "PUBLICAR EN LA WEB" (EL QUE TERMINA EN .csv)
-            LINK_CONTROL_CSV = "TU_LINK_AQUI" 
+        if st.button("Validar Entrada"):
+            # TU ID DE ARCHIVO DE CONTROL
+            ID_FILE = "11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8"
+            URL_BASE = f"https://docs.google.com/spreadsheets/d/{ID_FILE}"
             
-            st.cache_data.clear()
-            df_auth = cargar_csv_publico(LINK_CONTROL_CSV)
+            st.cache_data.clear() # Limpieza local de Streamlit
+            df_auth = leer_excel_fresco(URL_BASE)
             
-            if df_auth is not None and 'pin' in df_auth.columns:
-                df_auth['pin'] = df_auth['pin'].astype(str).str.strip()
-                match = df_auth[df_auth['pin'] == pin_ingresado.strip()]
-                
-                if not match.empty:
-                    st.session_state["acceso_ok"] = True
-                    st.session_state["datos_usuario"] = match.iloc[0].to_dict()
-                    st.rerun()
+            if df_auth is not None:
+                if 'pin' in df_auth.columns:
+                    df_auth['pin'] = df_auth['pin'].astype(str).str.strip()
+                    # Tu PIN guardado es 1990
+                    match = df_auth[df_auth['pin'] == pin_test.strip()]
+                    
+                    if not match.empty:
+                        st.session_state["sesion"] = True
+                        st.session_state["u_data"] = match.iloc[0].to_dict()
+                        st.rerun()
+                    else:
+                        st.error("❌ El PIN no coincide con los registros actuales.")
                 else:
-                    st.error("❌ PIN incorrecto.")
+                    # Si esto sale, te dirá qué está viendo realmente el sistema
+                    st.error("⚠️ Sigo leyendo las columnas de avales.")
+                    st.info(f"Columnas detectadas: {list(df_auth.columns)}")
             else:
-                st.error("⚠️ Error: El link de publicación no es válido o no tiene la columna 'pin'.")
+                st.error("❌ Error de conexión. Revisa que el archivo sea compartido.")
 else:
-    # --- PANEL DEL CLIENTE ---
-    u = st.session_state["datos_usuario"]
-    st.header(f"Bienvenida, {u['cliente']}")
-    
-    # Aquí puedes seguir usando tu lógica para el Excel del cliente
-    st.info("Ya estás dentro del sistema.")
+    st.header(f"Bienvenida al Panel")
+    user = st.session_state["u_data"]
+    st.success(f"Conectado como: {user['cliente']}")
     
     if st.button("Cerrar Sesión"):
-        st.session_state["acceso_ok"] = False
+        st.session_state["sesion"] = False
         st.rerun()
