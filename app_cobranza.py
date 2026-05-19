@@ -1,64 +1,67 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
-import random
 
-# Configuración visual para descansar la vista
+# Configuración visual limpia
 st.set_page_config(page_title="Gestión Cobranza", layout="wide")
-st.markdown("<style>.stApp { background-color: #0E1117; } h1,h2,p,label { color: #E0E0E0 !important; }</style>", unsafe_allow_html=True)
+st.markdown("""
+    <style>
+    .stApp { background-color: #0E1117; }
+    h1, h2, h3, p, label { color: #E0E0E0 !important; }
+    .stButton>button { background-color: #1E1E1E; color: #00FF00; border: 1px solid #00FF00; }
+    </style>
+    """, unsafe_allow_html=True)
 
-def leer_excel_fresco(url_base):
-    try:
-        # Generamos un número aleatorio para romper la memoria de Google
-        rompe_cache = random.randint(1, 999999)
-        # Forzamos la descarga del CSV de la primera pestaña (gid=0)
-        url_final = f"{url_base}/export?format=csv&gid=0&cache={rompe_cache}"
-        df = pd.read_csv(url_final)
-        # Limpieza estándar de columnas
-        df.columns = [str(c).strip().lower() for c in df.columns]
-        return df
-    except Exception as e:
-        return None
+# Inicializamos la conexión oficial de Streamlit
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-if "sesion" not in st.session_state:
-    st.session_state["sesion"] = False
+if "autenticado" not in st.session_state:
+    st.session_state.autenticado = False
 
-if not st.session_state["sesion"]:
+if not st.session_state.autenticado:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.title("🏦 Gestión Cobranza")
-        pin_test = st.text_input("PIN de Seguridad", type="password")
+        st.write("### Panel de Acceso")
+        pin_input = st.text_input("Introduce tu PIN de Seguridad", type="password")
         
-        if st.button("Validar Entrada"):
-            # TU ID DE ARCHIVO DE CONTROL
-            ID_FILE = "11i_HpvG4p7ftHvX9pSrR52NglxTbZkKTD2wOvQPAwG8"
-            URL_BASE = f"https://docs.google.com/spreadsheets/d/{ID_FILE}"
-            
-            st.cache_data.clear() # Limpieza local de Streamlit
-            df_auth = leer_excel_fresco(URL_BASE)
-            
-            if df_auth is not None:
-                if 'pin' in df_auth.columns:
-                    df_auth['pin'] = df_auth['pin'].astype(str).str.strip()
-                    # Tu PIN guardado es 1990
-                    match = df_auth[df_auth['pin'] == pin_test.strip()]
+        if st.button("Ingresar al Sistema"):
+            try:
+                # Forzamos la lectura directa de la pestaña 'Control' sin caché (ttl=0)
+                df = conn.read(worksheet="Control", ttl=0)
+                
+                # Estandarizamos las columnas a minúsculas
+                df.columns = [str(c).strip().lower() for c in df.columns]
+                
+                if 'pin' in df.columns:
+                    df['pin'] = df['pin'].astype(str).str.strip()
+                    usuario = df[df['pin'] == pin_input.strip()]
                     
-                    if not match.empty:
-                        st.session_state["sesion"] = True
-                        st.session_state["u_data"] = match.iloc[0].to_dict()
+                    if not usuario.empty:
+                        st.session_state.autenticado = True
+                        st.session_state.datos_user = usuario.iloc[0].to_dict()
                         st.rerun()
                     else:
-                        st.error("❌ El PIN no coincide con los registros actuales.")
+                        st.error("❌ El PIN ingresado no es correcto.")
                 else:
-                    # Si esto sale, te dirá qué está viendo realmente el sistema
-                    st.error("⚠️ Sigo leyendo las columnas de avales.")
-                    st.info(f"Columnas detectadas: {list(df_auth.columns)}")
-            else:
-                st.error("❌ Error de conexión. Revisa que el archivo sea compartido.")
+                    st.error("⚠️ Estructura incorrecta: No se detectó la columna 'pin'.")
+                    st.info(f"Columnas leídas: {list(df.columns)}")
+            except Exception as e:
+                st.error(f"Error de conexión con el nuevo origen de datos: {e}")
 else:
-    st.header(f"Bienvenida al Panel")
-    user = st.session_state["u_data"]
-    st.success(f"Conectado como: {user['cliente']}")
+    # --- PANEL DE CONSULTA DE CLIENTE ---
+    user = st.session_state.datos_user
+    st.header(f"Bienvenida al Panel, {user['cliente']}")
     
+    try:
+        # Leemos el archivo individual del cliente configurado en la fila
+        df_cliente = conn.read(spreadsheet=user['link_excel'], ttl=0)
+        st.subheader("📋 Estado de Cuenta Actualizado")
+        st.dataframe(df_cliente, use_container_width=True)
+    except Exception as e:
+        st.warning("El acceso fue exitoso, pero no se pudo cargar el desglose del cliente.")
+        st.caption(f"Detalle técnico: {e}")
+
     if st.button("Cerrar Sesión"):
-        st.session_state["sesion"] = False
+        st.session_state.autenticado = False
         st.rerun()
